@@ -1,0 +1,9 @@
+acquisition_channel_id,channel_name,channel_type,paid_or_organic
+1,Telegram,social,organic
+2,Instagram,social,paid
+3,YouTube,content,organic
+4,Referral,referral,organic
+5,Organic Search,search,organic
+6,Paid Ads,performance,paid
+7,App Store,marketplace,organic
+8,Partner,partnership,paid
