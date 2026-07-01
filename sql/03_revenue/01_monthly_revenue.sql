@@ -1,5 +1,5 @@
 -- Monthly net revenue
--- Business question: How much revenue does the product recognize each month?
+-- Business question: How much gross and net payment revenue does the product collect each month?
 -- Successful charges add revenue; refund records subtract it; failures contribute zero.
 SELECT
     DATE_TRUNC('month', payment_date)::date AS revenue_month,

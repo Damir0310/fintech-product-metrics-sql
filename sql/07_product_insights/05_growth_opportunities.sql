@@ -1,6 +1,6 @@
 -- Growth opportunities
 -- Business question: Which channel-country segments have scale but below-average monetization?
--- Flags segments with at least 50 users and revenue per signup below the overall average.
+-- Flags segments with at least 50 users and revenue per signup below average; modeled upside is a benchmark scenario, not a forecast.
 WITH user_value AS (
     SELECT u.user_id, u.country, u.acquisition_channel_id,
            COALESCE(SUM(CASE WHEN p.payment_status = 'success' THEN p.amount_usd WHEN p.payment_status = 'refunded' THEN -p.amount_usd ELSE 0 END), 0) AS net_revenue

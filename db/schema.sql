@@ -31,29 +31,47 @@ CREATE TABLE subscriptions (
     cancellation_reason VARCHAR(50),
     trial_started_at DATE,
     trial_ended_at DATE,
+    UNIQUE (subscription_id, user_id),
     CHECK (canceled_at IS NULL OR canceled_at >= started_at),
-    CHECK (status <> 'canceled' OR canceled_at IS NOT NULL)
+    CHECK (status <> 'canceled' OR canceled_at IS NOT NULL),
+    CHECK (trial_ended_at IS NULL OR trial_started_at IS NULL OR trial_ended_at >= trial_started_at)
 );
 COMMENT ON TABLE subscriptions IS 'Trial and paid subscription lifecycles, including cancellation context.';
 
 CREATE TABLE payments (
     payment_id BIGINT PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(user_id),
-    subscription_id BIGINT NOT NULL REFERENCES subscriptions(subscription_id),
+    subscription_id BIGINT NOT NULL,
     payment_date DATE NOT NULL,
     amount_usd NUMERIC(10, 2) NOT NULL CHECK (amount_usd >= 0),
     currency CHAR(3) NOT NULL,
     payment_status VARCHAR(20) NOT NULL CHECK (payment_status IN ('success', 'failed', 'refunded')),
     payment_provider VARCHAR(30) NOT NULL CHECK (payment_provider IN ('card', 'crypto', 'bank_transfer', 'apple_pay', 'google_pay')),
     failure_reason VARCHAR(50),
-    CHECK (payment_status <> 'failed' OR failure_reason IS NOT NULL)
+    FOREIGN KEY (subscription_id, user_id) REFERENCES subscriptions(subscription_id, user_id),
+    CHECK (
+        (payment_status = 'failed' AND failure_reason IS NOT NULL)
+        OR (payment_status <> 'failed' AND failure_reason IS NULL)
+    )
 );
 COMMENT ON TABLE payments IS 'Payment attempts, successful charges, and refund records in USD-equivalent amounts.';
 
 CREATE TABLE events (
     event_id BIGINT PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(user_id),
-    event_name VARCHAR(50) NOT NULL,
+    event_name VARCHAR(50) NOT NULL CHECK (event_name IN (
+        'signup',
+        'trial_started',
+        'subscription_started',
+        'payment_success',
+        'payment_failed',
+        'subscription_canceled',
+        'subscription_expired',
+        'support_contacted',
+        'plan_upgraded',
+        'plan_downgraded',
+        'reactivated'
+    )),
     event_timestamp TIMESTAMP NOT NULL,
     event_source VARCHAR(30) NOT NULL
 );

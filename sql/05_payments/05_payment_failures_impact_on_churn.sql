@@ -1,6 +1,6 @@
 -- Payment failures and churn
 -- Business question: Are users with failed payments more likely to cancel?
--- Splits paid users by failure exposure and compares cancellation rates.
+-- Splits paid users by failure exposure and compares cancellation rates; this is association, not causation.
 WITH paid_users AS (
     SELECT DISTINCT user_id FROM payments WHERE payment_status = 'success'
 ), user_flags AS (

@@ -5,7 +5,9 @@ WITH user_value AS (
     SELECT p.user_id,
            SUM(CASE WHEN p.payment_status = 'success' THEN p.amount_usd WHEN p.payment_status = 'refunded' THEN -p.amount_usd ELSE 0 END) AS net_revenue,
            COUNT(*) FILTER (WHERE p.payment_status = 'success') AS successful_payments
-    FROM payments p GROUP BY p.user_id
+    FROM payments p
+    GROUP BY p.user_id
+    HAVING COUNT(*) FILTER (WHERE p.payment_status = 'success') > 0
 ), ranked AS (
     SELECT *, NTILE(10) OVER (ORDER BY net_revenue DESC) AS value_decile FROM user_value
 )

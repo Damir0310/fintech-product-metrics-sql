@@ -33,8 +33,8 @@ SELECT
         WHEN net_revenue = 0 THEN 'inactive_free'
         WHEN reactivated THEN 'reactivated_payer'
         WHEN ever_canceled THEN 'churned_payer'
-        WHEN net_revenue >= 120 THEN 'high_value_active'
         WHEN last_event_at < max_event_at - INTERVAL '60 days' THEN 'at_risk_payer'
+        WHEN net_revenue >= 120 THEN 'high_value_active'
         ELSE 'active_payer'
     END AS user_segment,
     COUNT(*) AS users,

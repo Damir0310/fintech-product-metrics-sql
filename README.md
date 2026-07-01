@@ -1,53 +1,54 @@
-# Fintech Product Metrics with SQL
+# Fintech Product Metrics SQL Lab
 
-A PostgreSQL analytics project built around a deterministic synthetic dataset for a neutral fintech subscription app. It connects user acquisition, trials, subscriptions, payments, cancellations, and product events to answer practical questions about growth, monetization, retention, and payment reliability.
+An open, reproducible SQL analytics lab for understanding how fintech-style subscription products grow, monetize, retain users, and handle payment friction.
 
-## Purpose
+The repository combines a realistic PostgreSQL data model, deterministic synthetic data, documented metric definitions, data quality checks, and 38 runnable analyses. It is designed to connect SQL output to business interpretation rather than treating queries as isolated exercises.
 
-This repository is a compact research environment for exploring how product and revenue definitions become SQL. The queries favor transparent assumptions, readable CTEs, and reproducible results over framework complexity.
+All data is synthetic.
 
-The analysis asks questions such as:
+## Why this project exists
 
-- Which channels attract users who activate and monetize?
-- How do trial start and trial-to-paid conversion vary by market?
-- How are MRR, ARR, ARPU, and observed LTV changing?
-- Which plans retain customers and generate durable value?
-- Where do payment failures occur, and how often are they recovered?
-- Are failed payments associated with higher cancellation?
-- Which channel-country segments have scale but weak monetization?
+Product metrics are rarely difficult because of arithmetic alone. The difficult part is deciding:
 
-## Repository structure
+- which users belong in a denominator;
+- what event proves activation or retention;
+- whether revenue is gross, net, collected, or recurring;
+- how billing cadence affects comparisons;
+- how refunds, failures, cancellations, and reactivations change a metric;
+- whether an observed difference supports a decision or only another question.
 
-```text
-fintech-product-metrics-sql/
-├── data/                         # Five generated CSV datasets
-├── db/                           # PostgreSQL schema, loading, and checks
-├── docs/                         # Definitions, questions, findings, and SQL notes
-├── scripts/generate_synthetic_data.py
-└── sql/
-    ├── 01_user_growth/
-    ├── 02_activation/
-    ├── 03_revenue/
-    ├── 04_retention_churn/
-    ├── 05_payments/
-    ├── 06_ltv_segments/
-    └── 07_product_insights/
-```
+This lab makes those choices visible. Each SQL file starts with a business question and explains what the query calculates. The supporting documentation records assumptions, limitations, and interpretation guidance.
 
-## Dataset overview
+## Who may find it useful
 
-The checked-in data contains 5,000 users who signed up during 2025, 3,663 subscription records, 5,571 payment records, and 19,297 lifecycle events. The generator models:
+- Analysts and business analysts learning a subscription data model
+- Product analysts defining activation, retention, and monetization metrics
+- Product managers and founders testing metric questions before building reporting
+- Data learners practicing PostgreSQL with connected business scenarios
+- Teams discussing consistent definitions for payments and recurring revenue
 
-- eight countries and eight acquisition channels;
-- monthly, quarterly, and yearly plans;
-- trials, paid conversion, cancellation, expiry, and reactivation;
-- successful, failed, recovered, and refunded payments;
-- card, crypto, bank transfer, Apple Pay, and Google Pay providers;
-- product events such as support contacts and plan changes.
+## Questions the lab answers
 
-Generation uses a fixed seed (`42`), so rerunning the script produces the same files.
+The analyses cover questions such as:
 
-## Entity relationships
+- How are daily and monthly signups changing?
+- Which channels and countries produce strong activation?
+- How long does it take users to start a trial and make a first payment?
+- Which billing plans do converted users select?
+- What are net revenue, month-end MRR, ARR run rate, and ARPU?
+- Which cohorts remain active after their first payment?
+- What is monthly gross churn, and why do users cancel?
+- Which payment providers have the highest failure rates?
+- How many failed payments recover within seven days?
+- Are payment failures associated with cancellation?
+- Which channels produce the highest observed value per signup?
+- Where is there scale but below-average monetization?
+
+The complete question set is in [docs/business_questions.md](docs/business_questions.md).
+
+## Data model
+
+The model follows five connected entities:
 
 ```mermaid
 erDiagram
@@ -58,93 +59,192 @@ erDiagram
     SUBSCRIPTIONS ||--o{ PAYMENTS : receives
 ```
 
-`users` is the acquisition anchor. A user may have a subscription, payments tied to that subscription, and many timestamped events. `acquisition_channels` provides channel metadata. Foreign keys in `db/schema.sql` enforce these relationships.
+- `acquisition_channels` describes source, channel type, and paid/organic classification.
+- `users` stores signup date, country, device, language, age group, and acquisition source.
+- `subscriptions` stores trial dates, plan, lifecycle status, cancellation date, and reason.
+- `payments` stores attempts, successful charges, refunds, providers, and failure reasons.
+- `events` stores timestamped user, subscription, and payment lifecycle events.
 
-## Metrics covered
+The PostgreSQL schema enforces primary keys, foreign keys, ownership consistency between payments and subscriptions, valid category values, and basic lifecycle chronology. See [docs/data_dictionary.md](docs/data_dictionary.md) for column-level definitions.
 
-- signup growth and acquisition mix;
-- trial start, trial-to-paid, and signup-to-paid conversion;
-- gross and net revenue, collected MRR, ARR run rate, and ARPU;
-- gross churn, activity cohort retention, and paid-user retention;
-- payment success, failure, and seven-day recovery;
-- observed LTV by channel, country, and plan;
-- high-value and lifecycle-based user segments.
+## Synthetic dataset
 
-Definitions and caveats are documented in [docs/metrics_glossary.md](docs/metrics_glossary.md).
+The checked-in dataset contains:
 
-## Run locally
+| Entity | Rows | Coverage |
+|---|---:|---|
+| Users | 5,000 | Signups across 2025 |
+| Acquisition channels | 8 | Social, search, referral, marketplace, advertising, and partners |
+| Subscriptions | 3,663 | Trial, active, canceled, and expired lifecycles |
+| Payments | 5,571 | Successful, failed, recovered, and refunded records |
+| Events | 19,297 | Signup, trial, billing, support, plan, cancellation, and reactivation events |
 
-Requirements: Python 3.10+, `pandas`, `numpy`, PostgreSQL, and `psql`.
+The generator uses seed `42`. Running it again produces the same CSV files and validates key relational rules before writing them.
+
+Signups and payments run through 2025. A small number of lifecycle events for late-December signups extend to 2026-01-20, so event-based and payment-based analyses have slightly different observation endpoints.
+
+## Metrics included
+
+| Area | Metrics and analyses |
+|---|---|
+| Growth | Daily signups, monthly signups, growth rate, country mix, channel mix |
+| Activation | Trial start rate, trial-to-paid conversion, activation by channel/country, time to activation, plan selection |
+| Revenue | Gross revenue, refunds, net revenue, month-end MRR, ARR run rate, ARPU, revenue by plan/channel/country |
+| Retention | Signup-cohort activity, paid subscription retention, gross churn, cancellation reasons, reactivation |
+| Payments | Success rate, failure rate, provider performance, recovery rate, value at risk, failure/churn relationship |
+| Value | Observed LTV by channel/country/plan, high-value users, lifecycle segments |
+| Decisions | Acquisition scorecards, high-churn channels, 90-day retention, plan performance, growth opportunities |
+
+The exact numerator, denominator, grain, and caveat for each metric are documented in [docs/metrics_glossary.md](docs/metrics_glossary.md).
+
+## Quickstart
+
+Requirements: Python 3.10 or newer, `pandas`, `numpy`, PostgreSQL, and the `psql` command-line client.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
+source .venv/bin/activate
 pip install pandas numpy
 python scripts/generate_synthetic_data.py
-```
 
-Create a database and load the files from the repository root:
-
-```bash
 createdb fintech_metrics
 psql -d fintech_metrics -f db/schema.sql
 psql -d fintech_metrics -f db/load_data.sql
 psql -d fintech_metrics -f db/sample_checks.sql
 ```
 
-`load_data.sql` uses psql's client-side `\copy` with relative `data/` paths. Replace them with absolute paths if psql is launched from another directory.
+Windows PowerShell activation:
 
-Run any analysis file directly, for example:
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+The detailed guide includes setup checks, expected row counts, path troubleshooting, and example query commands: [docs/quickstart.md](docs/quickstart.md).
+
+## Generate and load sample data
+
+Regenerate the CSV files from the repository root:
 
 ```bash
-psql -d fintech_metrics -f sql/03_revenue/01_monthly_revenue.sql
+python scripts/generate_synthetic_data.py
+```
+
+The script prints `Validation passed` before writing the five files. The committed CSVs are ready to use, so regeneration is optional.
+
+Load them into PostgreSQL:
+
+```bash
+psql -d fintech_metrics -f db/schema.sql
+psql -d fintech_metrics -f db/load_data.sql
+```
+
+`db/load_data.sql` uses psql's client-side `\copy`. Run it from the repository root or replace the relative `data/` paths with absolute paths.
+
+## Run analyses
+
+Every analysis is independently runnable after loading the data:
+
+```bash
+psql -d fintech_metrics -f sql/02_activation/02_trial_to_paid_conversion.sql
+psql -d fintech_metrics -f sql/03_revenue/02_mrr.sql
+psql -d fintech_metrics -f sql/04_retention_churn/03_paid_user_retention.sql
 psql -d fintech_metrics -f sql/05_payments/04_recovered_payments.sql
 psql -d fintech_metrics -f sql/07_product_insights/04_plan_performance_summary.sql
 ```
 
-## Example insights
+The numbered folders form a useful reading path: begin with growth and activation, establish revenue definitions, then move to retention, payment reliability, user value, and cross-functional insights.
 
-Results from the generated dataset illustrate the kind of product discussion the queries support:
+## Run data quality checks
 
-- 73.26% of users start a trial, and 51.13% of trial users make a successful payment.
-- Net collected revenue is $113,683.40 after $1,670.61 of refunds.
-- Referral and Organic Search lead observed revenue per signup at $27.18 and $26.75.
-- Paid Ads has scale but lower revenue per signup ($17.29), making downstream conversion a useful investigation area.
-- Crypto has the highest payment failure rate (10.18%); card is lowest among the modeled providers (6.49%).
-- Kazakhstan and Georgia lead multi-month paid retention at approximately 62%.
-- Yearly plans generate substantial revenue despite lower adoption, while monthly plans remain the largest revenue contributor.
-- 7.87% of users with a cancellation event later reactivate.
+```bash
+psql -d fintech_metrics -f db/sample_checks.sql
+```
 
-These are observations about generated data, not claims about real customers or markets. See [docs/analysis_summary.md](docs/analysis_summary.md) for the full interpretation.
+The checks cover:
 
-## Design choices
+- expected row counts and duplicate identifiers;
+- missing foreign keys and payment/subscription owner mismatches;
+- invalid lifecycle dates and state combinations;
+- missing signup, payment, or cancellation events;
+- incorrect use of payment failure reasons;
+- gross, refunded, and net revenue reconciliation;
+- refunds without a matching earlier successful charge.
 
-- `amount_usd` stores a comparable USD-equivalent value while `currency` preserves the user's modeled local billing currency.
-- Refunds are separate payment rows; net revenue equals successful charges less refunded amounts.
-- Collected MRR normalizes successful plan charges by billing term. It is not a contractual billing schedule.
-- Observed LTV is realized net revenue in the available window, not a forward-looking prediction.
-- Retention definitions differ by question and are stated in each SQL file.
+Most diagnostic queries should return `0` or no rows. The revenue reconciliation query returns totals for manual comparison.
 
-## Future improvements
+## How to interpret results
 
-- Add subscription history rows for every upgrade, downgrade, and reactivation period.
-- Model acquisition spend to calculate CAC, payback period, and LTV:CAC.
-- Add dunning attempt numbers and richer payment recovery sequences.
-- Introduce experiment assignments for activation and pricing analysis.
-- Extend the observation window to reduce censoring in later cohorts.
+Use the query output as evidence inside a metric definition, not as a conclusion by itself.
 
-## Documentation
+1. **Check the grain.** A payment row, subscription row, and user row answer different questions.
+2. **Read the denominator.** Signup-to-paid conversion and trial-to-paid conversion are both valid but not interchangeable.
+3. **Separate flow from state.** Monthly revenue is a payment flow; MRR is a month-end subscription snapshot.
+4. **Control for billing cadence.** Paid retention uses subscription state so yearly plans are not treated as inactive between charges.
+5. **Respect observation windows.** Recent cohorts have had less time to retain, cancel, or generate value.
+6. **Treat association carefully.** A higher churn rate among users with payment failures does not prove that failure caused cancellation.
+7. **Keep synthetic findings in context.** They demonstrate analysis patterns, not external market behavior.
 
+Worked interpretation is available in [docs/analysis_summary.md](docs/analysis_summary.md), with implementation notes in [docs/sql_notes.md](docs/sql_notes.md).
+
+## Repository structure
+
+```text
+fintech-product-metrics-sql/
+|-- README.md
+|-- LICENSE
+|-- data/                         # Deterministic synthetic CSV files
+|-- db/
+|   |-- schema.sql                # PostgreSQL tables, constraints, indexes
+|   |-- load_data.sql             # psql \copy commands
+|   `-- sample_checks.sql         # Data quality and reconciliation checks
+|-- docs/
+|   |-- quickstart.md
+|   |-- metrics_glossary.md
+|   |-- data_dictionary.md
+|   |-- business_questions.md
+|   |-- analysis_summary.md
+|   `-- sql_notes.md
+|-- scripts/
+|   `-- generate_synthetic_data.py
+`-- sql/
+    |-- 01_user_growth/
+    |-- 02_activation/
+    |-- 03_revenue/
+    |-- 04_retention_churn/
+    |-- 05_payments/
+    |-- 06_ltv_segments/
+    `-- 07_product_insights/
+```
+
+## Design decisions and limitations
+
+- `amount_usd` is a comparable USD-equivalent amount; `currency` preserves the modeled billing currency.
+- Refunds are separate rows. Net revenue equals successful charge value less refunded value.
+- MRR uses paid subscriptions active at month end and normalizes their first successful charge by plan term.
+- ARR is `MRR * 12`; it is a run rate, not booked or recognized annual revenue.
+- Observed LTV is realized net revenue inside the dataset window, not a forecast.
+- A subscription row stores the main lifecycle. Events provide plan-change and reactivation timing; a full production model would use subscription-history periods.
+- No acquisition cost is modeled, so channel value cannot be interpreted as profitability or payback.
+
+## Roadmap
+
+- Add subscription-history periods for upgrades, downgrades, pauses, and reactivations.
+- Add campaign cost to support CAC, payback period, and LTV-to-CAC analysis.
+- Model dunning attempt sequence, retry strategy, and recovery cost.
+- Add product-usage events for feature-level activation and behavioral retention.
+- Add experiment assignment data for pricing and onboarding analysis.
+- Extend the observation window and provide censoring-aware cohort comparisons.
+- Add automated PostgreSQL query execution in continuous integration.
+
+## Documentation index
+
+- [Quickstart](docs/quickstart.md)
 - [Metrics glossary](docs/metrics_glossary.md)
 - [Data dictionary](docs/data_dictionary.md)
 - [Business questions](docs/business_questions.md)
 - [Analysis summary](docs/analysis_summary.md)
 - [SQL notes](docs/sql_notes.md)
 
-## Disclaimer
+## License and data notice
 
-All people, transactions, events, and outcomes in this repository are synthetic. The dataset is intended only for learning and analytical experimentation and must not be treated as real financial or customer data.
-
-## License
-
-MIT
+The code and documentation are available under the MIT License. All people, transactions, events, and outcomes are synthetic and intended for analytical learning and experimentation only.

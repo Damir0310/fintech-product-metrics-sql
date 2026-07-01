@@ -20,7 +20,7 @@ The synthetic product shows a healthy top-of-funnel trial rate, but meaningful v
 
 7. **Monthly plans drive the largest revenue pool.** Monthly subscriptions contribute $51,143.33 of net revenue, yearly plans $37,412.47, and quarterly plans $25,127.60. Plan comparisons should combine revenue with normalization and cancellation rather than relying only on booked charge size.
 
-8. **Paid retention differs across markets.** Kazakhstan and Georgia lead the share of paid users with successful charges in at least two distinct months, both at about 62%. Armenia is lowest at 53.69%. Later signup cohorts have shorter observation windows, so these comparisons remain descriptive.
+8. **Fixed-window retention differs across markets.** Among users with a complete 90-day observation window, Turkey leads paid retention at 89.57%, followed by Poland at 88.43%. The overall eligible-user rate is 84.95%. This subscription-state definition keeps monthly, quarterly, and yearly plans comparable; it still describes generated data rather than market performance.
 
 9. **Reactivation is material but not large.** Forty of 508 users with a cancellation event later reactivate, a 7.87% rate. Cancellation reasons and payment-failure history can help identify where recovery messages may be most relevant.
 

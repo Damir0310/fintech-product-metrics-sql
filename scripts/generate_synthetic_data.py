@@ -64,6 +64,51 @@ def add_event(events, event_id, user_id, name, timestamp, source):
     return event_id + 1
 
 
+def validate_frames(frames):
+    """Fail fast if generation breaks a key relational or lifecycle rule."""
+    users = frames["users.csv"]
+    subscriptions = frames["subscriptions.csv"]
+    payments = frames["payments.csv"]
+    events = frames["events.csv"]
+
+    assert len(users) == N_USERS, "Unexpected user count"
+    assert users["user_id"].is_unique, "Duplicate user_id"
+    assert subscriptions["subscription_id"].is_unique, "Duplicate subscription_id"
+    assert payments["payment_id"].is_unique, "Duplicate payment_id"
+    assert events["event_id"].is_unique, "Duplicate event_id"
+
+    user_ids = set(users["user_id"])
+    subscription_ids = set(subscriptions["subscription_id"])
+    assert set(subscriptions["user_id"]).issubset(user_ids), "Subscription without user"
+    assert set(payments["user_id"]).issubset(user_ids), "Payment without user"
+    assert set(payments["subscription_id"]).issubset(subscription_ids), "Payment without subscription"
+    assert set(events["user_id"]).issubset(user_ids), "Event without user"
+
+    subscription_owner = subscriptions.set_index("subscription_id")["user_id"]
+    payment_owner = payments["subscription_id"].map(subscription_owner)
+    assert payments["user_id"].equals(payment_owner), "Payment user does not own subscription"
+
+    canceled = subscriptions["status"].eq("canceled")
+    assert subscriptions.loc[canceled, "canceled_at"].ne("").all(), "Canceled subscription without date"
+    failed = payments["payment_status"].eq("failed")
+    assert payments.loc[failed, "failure_reason"].ne("").all(), "Failed payment without reason"
+
+    signup_event_users = events.loc[events["event_name"].eq("signup"), "user_id"]
+    assert signup_event_users.value_counts().eq(1).all(), "A user has duplicate signup events"
+    assert set(signup_event_users) == user_ids, "User without signup event"
+
+    failed_payment_keys = set(
+        zip(
+            payments.loc[failed, "user_id"],
+            payments.loc[failed, "payment_date"],
+        )
+    )
+    failed_events = events[events["event_name"].eq("payment_failed")].copy()
+    failed_events["event_date"] = failed_events["event_timestamp"].str[:10]
+    failed_event_keys = set(zip(failed_events["user_id"], failed_events["event_date"]))
+    assert failed_payment_keys.issubset(failed_event_keys), "Failed payment without matching event"
+
+
 def main():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     channels = pd.DataFrame(CHANNELS, columns=["acquisition_channel_id", "channel_name", "channel_type", "paid_or_organic"])
@@ -220,6 +265,8 @@ def main():
         "payments.csv": pd.DataFrame(payments),
         "events.csv": pd.DataFrame(events),
     }
+    validate_frames(frames)
+    print("Validation passed")
     for filename, frame in frames.items():
         frame.to_csv(DATA_DIR / filename, index=False, lineterminator="\n")
         print(f"Wrote {filename}: {len(frame):,} rows")

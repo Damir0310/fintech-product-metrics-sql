@@ -73,11 +73,11 @@ One row per timestamped lifecycle action. Events provide behavioral timing beyon
 
 ## Relationship rules
 
-- `users.acquisition_channel_id → acquisition_channels.acquisition_channel_id`
-- `subscriptions.user_id → users.user_id`
-- `payments.user_id → users.user_id`
-- `payments.subscription_id → subscriptions.subscription_id`
-- `events.user_id → users.user_id`
+- `users.acquisition_channel_id -> acquisition_channels.acquisition_channel_id`
+- `subscriptions.user_id -> users.user_id`
+- `payments.user_id -> users.user_id`
+- `(payments.subscription_id, payments.user_id) -> (subscriptions.subscription_id, subscriptions.user_id)`
+- `events.user_id -> users.user_id`
 - A payment's `user_id` matches the owner of its referenced subscription.
 - Each failed payment has a corresponding `payment_failed` event on the same date.
 - Each user has exactly one `signup` event at or after registration.

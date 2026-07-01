@@ -2,6 +2,18 @@
 
 The SQL library is organized around questions a fintech subscription product might revisit regularly.
 
+## Suggested analysis paths
+
+| Decision context | Start with | Then compare |
+|---|---|---|
+| Acquisition quality | `sql/02_activation/03_activation_by_channel.sql` | `sql/06_ltv_segments/01_ltv_by_channel.sql` |
+| Paid versus organic mix | `sql/07_product_insights/06_paid_vs_organic.sql` | `sql/07_product_insights/01_best_acquisition_channels.sql` |
+| Funnel speed | `sql/02_activation/05_time_to_activation.sql` | `sql/02_activation/02_trial_to_paid_conversion.sql` |
+| Recurring revenue | `sql/03_revenue/02_mrr.sql` | `sql/04_retention_churn/01_monthly_churn_rate.sql` |
+| Plan strategy | `sql/02_activation/06_plan_selection_after_trial.sql` | `sql/07_product_insights/04_plan_performance_summary.sql` |
+| Payment reliability | `sql/05_payments/03_failed_payments_by_provider.sql` | `sql/05_payments/04_recovered_payments.sql` |
+| Market retention | `sql/07_product_insights/03_countries_with_best_retention.sql` | `sql/04_retention_churn/03_paid_user_retention.sql` |
+
 ## Growth and acquisition
 
 1. How are daily and monthly signups changing?
