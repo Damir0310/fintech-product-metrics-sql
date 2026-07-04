@@ -2,7 +2,7 @@
 
 An open, reproducible SQL analytics lab for understanding how fintech-style subscription products grow, monetize, retain users, and handle payment friction.
 
-The repository combines a realistic PostgreSQL data model, deterministic synthetic data, documented metric definitions, data quality checks, and 38 runnable analyses. It is designed to connect SQL output to business interpretation rather than treating queries as isolated exercises.
+The repository combines a realistic PostgreSQL data model, deterministic synthetic data, documented metric definitions, 38 core analyses, practical experiment plans, and row-level data-quality diagnostics. It is designed to connect SQL output to business interpretation rather than treating queries as isolated exercises.
 
 All data is synthetic.
 
@@ -43,6 +43,8 @@ The analyses cover questions such as:
 - Are payment failures associated with cancellation?
 - Which channels produce the highest observed value per signup?
 - Where is there scale but below-average monetization?
+- How should trial reminders and failed-payment recovery flows be tested?
+- Which data anomalies can invalidate revenue, conversion, or retention metrics?
 
 The complete question set is in [docs/business_questions.md](docs/business_questions.md).
 
@@ -94,6 +96,8 @@ Signups and payments run through 2025. A small number of lifecycle events for la
 | Payments | Success rate, failure rate, provider performance, recovery rate, value at risk, failure/churn relationship |
 | Value | Observed LTV by channel/country/plan, high-value users, lifecycle segments |
 | Decisions | Acquisition scorecards, high-churn channels, 90-day retention, plan performance, growth opportunities |
+| Experiments | Trial reminders, failed-payment recovery, group conversion, shared guardrails |
+| Data quality | Duplicate payments, orphaned users, refund treatment, lifecycle timing, test-user contamination |
 
 The exact numerator, denominator, grain, and caveat for each metric are documented in [docs/metrics_glossary.md](docs/metrics_glossary.md).
 
@@ -172,6 +176,29 @@ The checks cover:
 
 Most diagnostic queries should return `0` or no rows. The revenue reconciliation query returns totals for manual comparison.
 
+For row-level anomaly diagnostics, use the dedicated [data-quality section](data-quality/README.md):
+
+```bash
+psql -d fintech_metrics -f data-quality/sql/duplicate_payments.sql
+psql -d fintech_metrics -f data-quality/sql/active_subscription_without_successful_payment.sql
+psql -d fintech_metrics -f data-quality/sql/events_before_registration.sql
+```
+
+These queries are non-destructive and return suspicious records for investigation. Most are expected to return zero rows.
+
+## Design and analyze experiments
+
+The [experiments section](experiments/README.md) connects business problems, hypotheses, target populations, assignment, primary metrics, guardrails, SQL analysis, and pre-agreed decision rules.
+
+It includes:
+
+- a reusable [experiment template](experiments/experiment_template.md);
+- a [trial-expiration reminder experiment](experiments/trial_to_paid_conversion_experiment.md);
+- a [three-step failed-payment recovery experiment](experiments/failed_payment_recovery_experiment.md);
+- PostgreSQL examples for [conversion by group](experiments/sql/conversion_by_group.sql) and [guardrail metrics](experiments/sql/guardrail_metrics.sql).
+
+The sample schema has no recorded assignment table, so the lab SQL uses deterministic hashing to create reproducible groups. The documentation identifies the production assignment contract and the data checks required before interpreting a treatment effect.
+
 ## How to interpret results
 
 Use the query output as evidence inside a metric definition, not as a conclusion by itself.
@@ -204,6 +231,18 @@ fintech-product-metrics-sql/
 |   |-- business_questions.md
 |   |-- analysis_summary.md
 |   `-- sql_notes.md
+|-- experiments/
+|   |-- README.md
+|   |-- experiment_template.md
+|   |-- trial_to_paid_conversion_experiment.md
+|   |-- failed_payment_recovery_experiment.md
+|   `-- sql/                       # Group conversion and experiment guardrails
+|-- data-quality/
+|   |-- README.md
+|   |-- data_quality_rules.md
+|   |-- data_quality_checklist.md
+|   |-- anomaly_examples.md
+|   `-- sql/                       # Read-only suspicious-row checks
 |-- scripts/
 |   `-- generate_synthetic_data.py
 `-- sql/
@@ -232,7 +271,7 @@ fintech-product-metrics-sql/
 - Add campaign cost to support CAC, payback period, and LTV-to-CAC analysis.
 - Model dunning attempt sequence, retry strategy, and recovery cost.
 - Add product-usage events for feature-level activation and behavioral retention.
-- Add experiment assignment data for pricing and onboarding analysis.
+- Add recorded experiment assignment and treatment-delivery data.
 - Extend the observation window and provide censoring-aware cohort comparisons.
 - Add automated PostgreSQL query execution in continuous integration.
 
@@ -244,6 +283,8 @@ fintech-product-metrics-sql/
 - [Business questions](docs/business_questions.md)
 - [Analysis summary](docs/analysis_summary.md)
 - [SQL notes](docs/sql_notes.md)
+- [Experiments](experiments/README.md)
+- [Data quality](data-quality/README.md)
 
 ## License and data notice
 
