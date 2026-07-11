@@ -1,0 +1,9 @@
+channel_name,paid_or_organic,acquired_users,paid_users,net_revenue_usd
+Organic Search,organic,710,301,35680.50
+Referral,organic,545,258,33425.75
+App Store,organic,640,276,31890.25
+Partner,paid,420,184,24610.00
+YouTube,organic,610,211,22345.50
+Instagram,paid,735,198,20120.75
+Paid Ads,paid,805,203,18765.25
+Telegram,organic,535,161,15480.00

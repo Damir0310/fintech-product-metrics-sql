@@ -29,7 +29,8 @@ FROM payments p
 JOIN subscriptions s
     ON s.subscription_id = p.subscription_id
    AND s.user_id = p.user_id
-LEFT JOIN reactivations r USING (user_id)
+LEFT JOIN reactivations r
+    ON r.user_id = p.user_id
 WHERE p.payment_status = 'success'
   AND (
       p.payment_date < s.started_at

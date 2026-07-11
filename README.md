@@ -1,10 +1,24 @@
 # Fintech Product Metrics SQL Lab
 
-An open, reproducible SQL analytics lab for understanding how fintech-style subscription products grow, monetize, retain users, and handle payment friction.
+An open SQL analytics lab for fintech-style subscription product metrics.
 
-The repository combines a realistic PostgreSQL data model, deterministic synthetic data, documented metric definitions, 38 core analyses, practical experiment plans, and row-level data-quality diagnostics. It is designed to connect SQL output to business interpretation rather than treating queries as isolated exercises.
+This repository uses a deterministic synthetic dataset to show how PostgreSQL can answer practical questions about acquisition, activation, revenue, retention, churn, payments, lifetime value, experiments, and data quality. The goal is to connect SQL logic with business interpretation in a way that is easy to inspect and reproduce.
 
 All data is synthetic.
+
+## Best files to review
+
+If you only have a few minutes, start here:
+
+- [MRR calculation](sql/03_revenue/02_mrr.sql)
+- [Cohort retention](sql/04_retention_churn/02_cohort_retention.sql)
+- [Payment failures and churn](sql/05_payments/05_payment_failures_impact_on_churn.sql)
+- [LTV by acquisition channel](sql/06_ltv_segments/01_ltv_by_channel.sql)
+- [Churn risk segments](sql/08_advanced/03_churn_risk_segments.sql)
+- [Data quality report](data_quality/data_quality_report.md)
+- [Failed payments case study](case_studies/02_failed_payments_case.md)
+- [Entity relationship diagram](docs/erd.md)
+- [Recommendations](insights/05_recommendations.md)
 
 ## Why this project exists
 
@@ -17,7 +31,7 @@ Product metrics are rarely difficult because of arithmetic alone. The difficult 
 - how refunds, failures, cancellations, and reactivations change a metric;
 - whether an observed difference supports a decision or only another question.
 
-This lab makes those choices visible. Each SQL file starts with a business question and explains what the query calculates. The supporting documentation records assumptions, limitations, and interpretation guidance.
+This lab makes those choices visible. Each SQL file starts with a business question and explains what the query calculates. The supporting documentation records assumptions, limitations, data quality checks, and interpretation guidance.
 
 ## Who may find it useful
 
@@ -27,7 +41,7 @@ This lab makes those choices visible. Each SQL file starts with a business quest
 - Data learners practicing PostgreSQL with connected business scenarios
 - Teams discussing consistent definitions for payments and recurring revenue
 
-## Questions the lab answers
+## Business questions
 
 The analyses cover questions such as:
 
@@ -46,7 +60,7 @@ The analyses cover questions such as:
 - How should trial reminders and failed-payment recovery flows be tested?
 - Which data anomalies can invalidate revenue, conversion, or retention metrics?
 
-The complete question set is in [docs/business_questions.md](docs/business_questions.md).
+More question lists are available in [docs/business_questions.md](docs/business_questions.md) and [docs/executive_questions.md](docs/executive_questions.md).
 
 ## Data model
 
@@ -67,9 +81,9 @@ erDiagram
 - `payments` stores attempts, successful charges, refunds, providers, and failure reasons.
 - `events` stores timestamped user, subscription, and payment lifecycle events.
 
-The PostgreSQL schema enforces primary keys, foreign keys, ownership consistency between payments and subscriptions, valid category values, and basic lifecycle chronology. See [docs/data_dictionary.md](docs/data_dictionary.md) for column-level definitions.
+The PostgreSQL schema enforces primary keys, foreign keys, ownership consistency between payments and subscriptions, valid category values, and basic lifecycle chronology. See [docs/data_dictionary.md](docs/data_dictionary.md) for column-level definitions and [docs/erd.md](docs/erd.md) for the full ERD.
 
-## Synthetic dataset
+## Dataset overview
 
 The checked-in dataset contains:
 
@@ -85,6 +99,8 @@ The generator uses seed `42`. Running it again produces the same CSV files and v
 
 Signups and payments run through 2025. A small number of lifecycle events for late-December signups extend to 2026-01-20, so event-based and payment-based analyses have slightly different observation endpoints.
 
+The dataset is intentionally small enough to inspect but large enough to support realistic joins, cohorts, rates, rankings, and segmentation.
+
 ## Metrics included
 
 | Area | Metrics and analyses |
@@ -95,6 +111,7 @@ Signups and payments run through 2025. A small number of lifecycle events for la
 | Retention | Signup-cohort activity, paid subscription retention, gross churn, cancellation reasons, reactivation |
 | Payments | Success rate, failure rate, provider performance, recovery rate, value at risk, failure/churn relationship |
 | Value | Observed LTV by channel/country/plan, high-value users, lifecycle segments |
+| Advanced SQL | Rolling 30-day revenue, lifetime revenue rank, churn risk segments, recovery windows, month-over-month growth |
 | Decisions | Acquisition scorecards, high-churn channels, 90-day retention, plan performance, growth opportunities |
 | Experiments | Trial reminders, failed-payment recovery, group conversion, shared guardrails |
 | Data quality | Duplicate payments, orphaned users, refund treatment, lifecycle timing, test-user contamination |
@@ -125,7 +142,7 @@ Windows PowerShell activation:
 
 The detailed guide includes setup checks, expected row counts, path troubleshooting, and example query commands: [docs/quickstart.md](docs/quickstart.md).
 
-## Generate and load sample data
+## Generate and load data into PostgreSQL
 
 Regenerate the CSV files from the repository root:
 
@@ -135,7 +152,7 @@ python scripts/generate_synthetic_data.py
 
 The script prints `Validation passed` before writing the five files. The committed CSVs are ready to use, so regeneration is optional.
 
-Load them into PostgreSQL:
+Load the CSV files into PostgreSQL:
 
 ```bash
 psql -d fintech_metrics -f db/schema.sql
@@ -144,7 +161,7 @@ psql -d fintech_metrics -f db/load_data.sql
 
 `db/load_data.sql` uses psql's client-side `\copy`. Run it from the repository root or replace the relative `data/` paths with absolute paths.
 
-## Run analyses
+## Run SQL files
 
 Every analysis is independently runnable after loading the data:
 
@@ -156,7 +173,19 @@ psql -d fintech_metrics -f sql/05_payments/04_recovered_payments.sql
 psql -d fintech_metrics -f sql/07_product_insights/04_plan_performance_summary.sql
 ```
 
-The numbered folders form a useful reading path: begin with growth and activation, establish revenue definitions, then move to retention, payment reliability, user value, and cross-functional insights.
+The numbered folders form a useful reading path: begin with growth and activation, establish revenue definitions, then move to retention, payment reliability, user value, advanced SQL patterns, and cross-functional insights.
+
+## Read sample outputs
+
+The `outputs/` folder contains small CSV files that look like exported SQL results:
+
+- [MRR by month](outputs/mrr_by_month.csv)
+- [Churn by month](outputs/churn_by_month.csv)
+- [Cohort retention](outputs/cohort_retention.csv)
+- [Revenue by channel](outputs/revenue_by_channel.csv)
+- [Payment success rate](outputs/payment_success_rate.csv)
+
+These files are examples for quick review. They are not source data and should not replace running the SQL against the synthetic dataset.
 
 ## Run data quality checks
 
@@ -176,7 +205,7 @@ The checks cover:
 
 Most diagnostic queries should return `0` or no rows. The revenue reconciliation query returns totals for manual comparison.
 
-For row-level anomaly diagnostics, use the dedicated [data-quality section](data-quality/README.md):
+For row-level anomaly diagnostics, use the dedicated [data-quality section](data-quality/README.md) and the compact [data quality report](data_quality/data_quality_report.md):
 
 ```bash
 psql -d fintech_metrics -f data-quality/sql/duplicate_payments.sql
@@ -213,6 +242,16 @@ Use the query output as evidence inside a metric definition, not as a conclusion
 
 Worked interpretation is available in [docs/analysis_summary.md](docs/analysis_summary.md), with implementation notes in [docs/sql_notes.md](docs/sql_notes.md).
 
+## What the project demonstrates
+
+- PostgreSQL joins across users, subscriptions, payments, events, and acquisition channels
+- metric definitions for subscription and fintech-style product analytics
+- revenue logic for successful payments, refunds, MRR, ARR, ARPU, and LTV proxy
+- retention and churn analysis using cohorts, lifecycle dates, and cancellation reasons
+- payment analysis for success rate, failure rate, recovery, and churn risk
+- data quality checks that protect business metrics from misleading inputs
+- business interpretation through insights, recommendations, and case studies
+
 ## Repository structure
 
 ```text
@@ -228,9 +267,15 @@ fintech-product-metrics-sql/
 |   |-- quickstart.md
 |   |-- metrics_glossary.md
 |   |-- data_dictionary.md
+|   |-- erd.md
+|   |-- executive_questions.md
+|   |-- project_story.md
 |   |-- business_questions.md
 |   |-- analysis_summary.md
 |   `-- sql_notes.md
+|-- outputs/                       # Small sample CSV exports from SQL-style results
+|-- insights/                      # Business interpretations and recommendations
+|-- case_studies/                  # Practical metric-to-decision walkthroughs
 |-- experiments/
 |   |-- README.md
 |   |-- experiment_template.md
@@ -243,6 +288,9 @@ fintech-product-metrics-sql/
 |   |-- data_quality_checklist.md
 |   |-- anomaly_examples.md
 |   `-- sql/                       # Read-only suspicious-row checks
+|-- data_quality/
+|   |-- data_quality_report.md
+|   `-- *.sql                      # Compact validation checks by theme
 |-- scripts/
 |   `-- generate_synthetic_data.py
 `-- sql/
@@ -252,7 +300,8 @@ fintech-product-metrics-sql/
     |-- 04_retention_churn/
     |-- 05_payments/
     |-- 06_ltv_segments/
-    `-- 07_product_insights/
+    |-- 07_product_insights/
+    `-- 08_advanced/
 ```
 
 ## Design decisions and limitations
@@ -265,7 +314,7 @@ fintech-product-metrics-sql/
 - A subscription row stores the main lifecycle. Events provide plan-change and reactivation timing; a full production model would use subscription-history periods.
 - No acquisition cost is modeled, so channel value cannot be interpreted as profitability or payback.
 
-## Roadmap
+## Future improvements
 
 - Add subscription-history periods for upgrades, downgrades, pauses, and reactivations.
 - Add campaign cost to support CAC, payback period, and LTV-to-CAC analysis.
@@ -273,7 +322,7 @@ fintech-product-metrics-sql/
 - Add product-usage events for feature-level activation and behavioral retention.
 - Add recorded experiment assignment and treatment-delivery data.
 - Extend the observation window and provide censoring-aware cohort comparisons.
-- Add automated PostgreSQL query execution in continuous integration.
+- Add automated PostgreSQL query execution checks.
 
 ## Documentation index
 
@@ -281,11 +330,19 @@ fintech-product-metrics-sql/
 - [Metrics glossary](docs/metrics_glossary.md)
 - [Data dictionary](docs/data_dictionary.md)
 - [Business questions](docs/business_questions.md)
+- [Executive questions](docs/executive_questions.md)
+- [Project story](docs/project_story.md)
+- [Entity relationship diagram](docs/erd.md)
 - [Analysis summary](docs/analysis_summary.md)
 - [SQL notes](docs/sql_notes.md)
+- [Sample outputs](outputs/mrr_by_month.csv)
+- [Insights](insights/05_recommendations.md)
+- [Case studies](case_studies/01_channel_efficiency_case.md)
 - [Experiments](experiments/README.md)
 - [Data quality](data-quality/README.md)
 
-## License and data notice
+## Synthetic data disclaimer
 
-The code and documentation are available under the MIT License. All people, transactions, events, and outcomes are synthetic and intended for analytical learning and experimentation only.
+All people, transactions, events, and outcomes are synthetic. The data is designed for SQL practice, metric design, and business/product analytics interpretation. It should not be interpreted as real product performance or market behavior.
+
+The code and documentation are available under the MIT License.
